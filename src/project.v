@@ -30,7 +30,9 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign uio_oe = 8'b1111_1111; // all output
   
   wire [15:0] fused_output_w;
-  assign fused_output_w = {uo_out, uio_out};
+  assign uo_out  = fused_output_w[15:8];
+  assign uio_out = fused_output_w[7:0];
+
 
   localparam stack_size_lp = 16;
   localparam extmem_address_width = 14; 
@@ -191,6 +193,8 @@ module tt_um_TscherterJunior_stapel_geraet (
 
 
   wire write_enable_w;
+  assign write_enable_w = fsm_state_q == cs_store_adrr;
+
   wire error_w;
 
   assign error_w = 0;

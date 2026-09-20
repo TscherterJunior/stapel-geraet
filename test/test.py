@@ -36,12 +36,10 @@ async def test_instptre(dut):
     dut.ui_in.value = 0b1010_0000
     await ReadWrite()
 
-    assert dut.uio_out.value == 0
+    for i in range(255):
+        assert dut.uio_out.value == i
+        await step()
 
-    await step()
-    assert dut.uio_out.value == 1
-
-    await step()
-    assert dut.uio_out.value == 2
+    assert dut.uio_out.value == 255
 
 
