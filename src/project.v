@@ -15,7 +15,7 @@ module tt_um_TscherterJunior_stapel_geraet (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-
+  /*
   // All output pins must be assigned. If not used, assign to 0.
   assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
   assign uio_out = 0;
@@ -23,5 +23,177 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, clk, rst_n, 1'b0};
+  */
+
+  assign uio_oe = 8'b1111_1111; // all output
+  
+  wire [15:0] fused_output_w;
+  assign fused_output_w = {uo_out, uio_oe};
+
+  localparam stack_size_lp = 16;
+  localparam extmem_address_width = 14; 
+  localparam extmem_address_mask = 15'b0011_1111_1111_1111;
+
+
+
+  // instructions
+  localparam full_opcode_mask = 8'b1111_1111;
+
+  localparam oc_push_zero = 8'b0000_0000;
+  localparam ms_push_zero = full_opcode_mask;
+
+  localparam oc_swap = 8'b1000_0000;
+  localparam ms_swap = full_opcode_mask;
+
+  localparam oc_add = 8'b0100_0000;
+  localparam ms_add = full_opcode_mask;
+
+  localparam oc_load_ext = 8'b1100_0000;
+  localparam ms_load_ext = full_opcode_mask;
+
+  localparam oc_store_ext = 8'b0010_0000;
+  localparam ms_store_ext = full_opcode_mask;
+
+
+
+  // cpu fsm
+  localparam logic[cpu_state_width_lp-1:0] cs_fetch = 0;
+
+  localparam logic[cpu_state_width_lp-1:0] cs_load_adrr = 1;
+
+  localparam logic[cpu_state_width_lp-1:0] cs_store_adrr = 2;
+  localparam logic[cpu_state_width_lp-1:0] cs_store_data = 3;
+
+  localparam cpu_fsm_state_count_lp = 4;
+  localparam cpu_state_width_lp = $clog2(cpu_fsm_state_count_lp);
+
+
+  reg [cpu_state_width_lp-1:0] fsm_state_q;
+  reg [cpu_state_width_lp-1:0] fsm_state_d;
+  localparam logic[cpu_state_width_lp-1:0] fsm_state_r_lp = cs_fetch;
+
+  // stack
+  reg [7:0] stack_s[stack_size_lp - 1:0];
+  localparam stack_cell_r_lp = 8'(0);
+
+  localparam stack_address_width_lp = $clog2(stack_size_lp);
+  reg [stack_address_width_lp-1:0] stack_pointer_q;
+  reg [stack_address_width_lp-1:0] stack_pointer_d;
+  localparam stack_pointer_r_lp = '0;
+
+  reg [7:0] stack_ccell_new_val_w;
+
+  // Instruction Pointer
+  reg [15:0] instruction_pointer_q;
+  reg [15:0] instruction_pointer_d;
+
+
+  // CPU FSM
+  always @(*) begin
+    case (fsm_state_q)
+      cs_fetch: begin 
+        if ((ms_load_ext & oc_load_ext) == (ms_load_ext & ui_in)) begin 
+          fsm_state_d = cs_load_adrr;
+        end
+        else if ((ms_store_ext & oc_store_ext) == (ms_store_ext & ui_in)) begin 
+          fsm_state_d = cs_store_adrr;
+        end
+        else begin 
+          fsm_state_d = fsm_state_q;
+        end
+      end
+      cs_load_adrr: begin 
+        fsm_state_d = cs_fetch;
+      end
+      cs_store_adrr: begin 
+        fsm_state_d = cs_store_data;
+      end
+      cs_store_data: begin 
+        fsm_state_d = cs_fetch;
+      end
+      default: fsm_state_d = fsm_state_q;
+    endcase
+  end
+
+  always @(posedge clk or negedge rst_n) begin
+    if(! rst_n) fsm_state_q <= fsm_state_r_lp;
+    else        fsm_state_q <= fsm_state_d;
+  end
+
+
+  // STACK
+  // we don't do the _d _q thing here because it would be fucking awfull
+  always @(posedge clk or negedge rst_n) begin
+      if (!rst_n) begin
+        for (int i = 0; i < stack_size_lp; i++) begin
+          stack_s[i] <= stack_cell_r_lp;
+        end
+      end else begin
+        case (fsm_state_q)
+            
+        cs_fetch : begin
+          if((ms_push_zero & oc_push_zero) == (ms_push_zero & ui_in)) begin
+            stack_s[stack_pointer_q + 1] <= 8'b0;
+            stack_pointer_q <= stack_pointer_q + 1;
+          end
+          else if ((ms_swap & oc_swap) == (ms_swap & ui_in)) begin
+            stack_s[stack_pointer_q] <= stack_s[stack_pointer_q -1];
+            stack_s[stack_pointer_q -1] <= stack_s[stack_pointer_q];
+          end
+          else if ((ms_add & oc_add) == (ms_add & ui_in)) begin
+            stack_s[stack_pointer_q-1] <= stack_s[stack_pointer_q-1] + stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else begin
+            stack_pointer_q <= stack_pointer_q;
+          end
+        end
+        cs_load_adrr : begin
+          stack_s[stack_pointer_q -1] <= ui_in;
+          stack_pointer_q <= stack_pointer_q - 1;
+        end
+        cs_store_adrr : begin 
+          stack_pointer_q <= stack_pointer_q - 2;
+        end
+        cs_store_data : begin 
+          stack_pointer_q <= stack_pointer_q - 1;
+        end
+        default : begin
+          stack_pointer_q <= stack_pointer_q;
+        end
+      endcase
+    end
+  end
+
+
+
+
+  wire write_enable_w;
+  wire error_w;
+
+  assign error_w = 0;
+
+  // OUTPUT GEN
+  wire [extmem_address_width-1:0] address_output_w ;
+
+  assign address_output_w = (
+    (fsm_state_q == cs_fetch) ? instruction_pointer_q[extmem_address_width-1:0] : 
+    (( fsm_state_q == cs_load_adrr) ? {stack_s[stack_pointer_q-1],stack_s[stack_pointer_q]}[extmem_address_width-1:0] :
+    ((( fsm_state_q == cs_store_adrr) ? {stack_s[stack_pointer_q-1],stack_s[stack_pointer_q]}[extmem_address_width-1:0] :
+    instruction_pointer_q[extmem_address_width-1:0]
+    )))
+  );
+
+  wire [15:0] data_output_w ;
+
+  assign data_output_w = {8'b0, stack_s[stack_pointer_q]};
+
+  assign fused_output_w = 
+  (fsm_state_q == cs_load_adrr || fsm_state_q == cs_store_adrr || fsm_state_q == cs_fetch) ? 
+  {write_enable_w,error_w,address_output_w} : data_output_w;
+
+
+
+
 
 endmodule
