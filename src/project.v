@@ -25,14 +25,16 @@ module tt_um_TscherterJunior_stapel_geraet (
   wire _unused = &{ena, clk, rst_n, 1'b0};
   */
 
+  wire _unused = &{ ena,uio_in};
+
   assign uio_oe = 8'b1111_1111; // all output
   
   wire [15:0] fused_output_w;
-  assign fused_output_w = {uo_out, uio_oe};
+  assign fused_output_w = {uo_out, uio_out};
 
   localparam stack_size_lp = 16;
   localparam extmem_address_width = 14; 
-  localparam extmem_address_mask = 16'b0011_1111_1111_1111;
+  //localparam extmem_address_mask = 16'b0011_1111_1111_1111;
 
 
 
@@ -53,6 +55,9 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   localparam oc_store_ext = 8'b0010_0000;
   localparam ms_store_ext = full_opcode_mask;
+
+  localparam oc_nop = 8'b1010_0000;
+  localparam ms_nop = full_opcode_mask;
 
 
 
@@ -79,7 +84,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam stack_address_width_lp = $clog2(stack_size_lp);
   reg [stack_address_width_lp-1:0] stack_pointer_q;
   reg [stack_address_width_lp-1:0] stack_pointer_d;
-  localparam stack_pointer_r_lp = '0;
+  localparam logic[stack_address_width_lp-1:0] stack_pointer_r_lp = '0;
 
   reg [7:0] stack_ccell_new_val_w;
 
@@ -128,6 +133,7 @@ module tt_um_TscherterJunior_stapel_geraet (
         for (int i = 0; i < stack_size_lp; i++) begin
           stack_s[i] <= stack_cell_r_lp;
         end
+        stack_pointer_q <= stack_pointer_r_lp;
       end else begin
         case (fsm_state_q)
             
@@ -145,7 +151,7 @@ module tt_um_TscherterJunior_stapel_geraet (
             stack_pointer_q <= stack_pointer_q - 1;
           end
           else begin
-            stack_pointer_q <= stack_pointer_q;
+            //stack_pointer_q <= stack_pointer_q;
           end
         end
         cs_load_adrr : begin
@@ -165,6 +171,22 @@ module tt_um_TscherterJunior_stapel_geraet (
     end
   end
 
+  // instruction pointer
+  always @(*) begin
+    case (fsm_state_q) 
+      cs_fetch : begin 
+        instruction_pointer_d = instruction_pointer_q + 1;
+      end
+    default : begin
+      instruction_pointer_d = instruction_pointer_q;
+    end
+    endcase
+  end
+
+  always @(posedge clk or negedge rst_n) begin
+    if(! rst_n) instruction_pointer_q <= '0;
+    else        instruction_pointer_q <= instruction_pointer_d;
+  end
 
 
 
@@ -197,9 +219,5 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign fused_output_w = 
   (fsm_state_q == cs_load_adrr || fsm_state_q == cs_store_adrr || fsm_state_q == cs_fetch) ? 
   {write_enable_w,error_w,address_output_w} : data_output_w;
-
-
-
-
 
 endmodule

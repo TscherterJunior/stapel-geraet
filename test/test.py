@@ -4,10 +4,10 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
-
+from cocotb.triggers import ReadWrite
 
 @cocotb.test()
-async def test_project(dut):
+async def test_instptre(dut):
     dut._log.info("Start")
 
     # Set the clock period to 10 us (100 KHz)
@@ -23,18 +23,25 @@ async def test_project(dut):
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
 
+    async def step(num = 1,d = dut):
+        await ClockCycles(d.clk, num)
+        await ReadWrite()
+        # assert dut.uio_oe.value == 0b1111_1111
+
     dut._log.info("Test project behavior")
 
+    await ReadWrite()
+
     # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+    dut.ui_in.value = 0b1010_0000
+    await ReadWrite()
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+    assert dut.uio_out.value == 0
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    await step()
+    assert dut.uio_out.value == 1
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    await step()
+    assert dut.uio_out.value == 2
+
+
