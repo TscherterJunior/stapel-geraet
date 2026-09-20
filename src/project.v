@@ -32,7 +32,7 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   localparam stack_size_lp = 16;
   localparam extmem_address_width = 14; 
-  localparam extmem_address_mask = 15'b0011_1111_1111_1111;
+  localparam extmem_address_mask = 16'b0011_1111_1111_1111;
 
 
 
@@ -176,13 +176,19 @@ module tt_um_TscherterJunior_stapel_geraet (
   // OUTPUT GEN
   wire [extmem_address_width-1:0] address_output_w ;
 
-  assign address_output_w = (
-    (fsm_state_q == cs_fetch) ? instruction_pointer_q[extmem_address_width-1:0] : 
-    (( fsm_state_q == cs_load_adrr) ? {stack_s[stack_pointer_q-1],stack_s[stack_pointer_q]}[extmem_address_width-1:0] :
-    ((( fsm_state_q == cs_store_adrr) ? {stack_s[stack_pointer_q-1],stack_s[stack_pointer_q]}[extmem_address_width-1:0] :
-    instruction_pointer_q[extmem_address_width-1:0]
-    )))
-  );
+  wire [15:0] stack_address;
+
+  assign stack_address = {
+      stack_s[stack_pointer_q-1],
+      stack_s[stack_pointer_q]
+  };
+
+  assign address_output_w =
+      (fsm_state_q == cs_fetch)      ? instruction_pointer_q[extmem_address_width-1:0] :
+      (fsm_state_q == cs_load_adrr)  ? stack_address[extmem_address_width-1:0] :
+      (fsm_state_q == cs_store_adrr) ? stack_address[extmem_address_width-1:0] :
+                                      instruction_pointer_q[extmem_address_width-1:0];
+
 
   wire [15:0] data_output_w ;
 
