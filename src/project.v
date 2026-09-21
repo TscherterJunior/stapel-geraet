@@ -34,7 +34,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign uio_out = fused_output_w[7:0];
 
 
-  localparam stack_size_lp = 16;
+  localparam stack_size_lp = 32;
   localparam extmem_address_width = 14; 
   //localparam extmem_address_mask = 16'b0011_1111_1111_1111;
 
@@ -67,6 +67,26 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam oc_jmp_nz = 8'b1110_0000;
   localparam ms_jmp_nz = full_opcode_mask;
 
+  localparam oc_dup = 8'b0001_0000;
+  localparam ms_dup = full_opcode_mask;
+
+  localparam oc_sub = 8'b1001_0000;
+  localparam ms_sub = full_opcode_mask;
+
+  localparam oc_pop_to_scratch_1 = 8'b0101_0000;
+  localparam ms_pop_to_scratch_1 = full_opcode_mask;
+
+  localparam oc_push_from_scratch_1 = 8'b1101_0000;
+  localparam ms_push_from_scratch_1 = full_opcode_mask;
+
+  localparam oc_pop_to_scratch_2 = 8'b0011_0000;
+  localparam ms_pop_to_scratch_2 = full_opcode_mask;
+
+  localparam oc_push_from_scratch_2 = 8'b1011_0000;
+  localparam ms_push_from_scratch_2 = full_opcode_mask;
+
+  localparam oc_drop = 8'b0111_0000;
+  localparam ms_drop = full_opcode_mask;
 
   // cpu fsm
   localparam logic[cpu_state_width_lp-1:0] cs_fetch = 0;
@@ -100,6 +120,10 @@ module tt_um_TscherterJunior_stapel_geraet (
   // Instruction Pointer
   reg [15:0] instruction_pointer_q;
   reg [15:0] instruction_pointer_d;
+
+  // scratch 1
+  reg [15:0] scratch_1_s;
+  reg [15:0] scratch_2_s;
 
 
   // CPU FSM
@@ -168,6 +192,35 @@ module tt_um_TscherterJunior_stapel_geraet (
           else if ((ms_jmp_nz & oc_jmp_nz) == (ms_jmp_nz & ui_in)) begin 
             stack_pointer_q <= stack_pointer_q - 2;
           end
+          else if ((ms_dup & oc_dup) == (ms_dup & ui_in)) begin 
+            stack_pointer_q <= stack_pointer_q + 1;
+            stack_s[stack_pointer_q + 1] <= stack_s[stack_pointer_q];
+          end
+          else if ((ms_sub & oc_sub) == (ms_sub & ui_in)) begin
+            stack_s[stack_pointer_q-1] <= stack_s[stack_pointer_q-1] - stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end 
+          else if ((ms_pop_to_scratch_1 & oc_pop_to_scratch_1) == (ms_pop_to_scratch_1 & ui_in)) begin
+            scratch_1_s <= {stack_s[stack_pointer_q -1],stack_s[stack_pointer_q]};
+            stack_pointer_q <= stack_pointer_q - 2;
+          end
+          else if ((ms_push_from_scratch_1 & oc_push_from_scratch_1) == (ms_push_from_scratch_1 & ui_in)) begin
+            stack_s[stack_pointer_q + 1] = scratch_1_s[15:8];
+            stack_s[stack_pointer_q + 2] = scratch_1_s[7:0];
+            stack_pointer_q <= stack_pointer_q + 2;
+          end           
+          else if ((ms_pop_to_scratch_2 & oc_pop_to_scratch_2) == (ms_pop_to_scratch_2 & ui_in)) begin
+            scratch_2_s <= {stack_s[stack_pointer_q -1],stack_s[stack_pointer_q]};
+            stack_pointer_q <= stack_pointer_q - 2;
+          end
+          else if ((ms_push_from_scratch_2 & oc_push_from_scratch_2) == (ms_push_from_scratch_2 & ui_in)) begin
+            stack_s[stack_pointer_q + 1] = scratch_2_s[15:8];
+            stack_s[stack_pointer_q + 2] = scratch_2_s[7:0];
+            stack_pointer_q <= stack_pointer_q + 2;
+          end            
+          else if ((ms_drop & oc_drop) == (ms_drop & ui_in)) begin
+            stack_pointer_q <= stack_pointer_q - 1;
+          end   
           else begin
             //stack_pointer_q <= stack_pointer_q;
           end
