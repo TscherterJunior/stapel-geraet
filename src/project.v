@@ -34,7 +34,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign uio_out = fused_output_w[7:0];
 
 
-  localparam stack_size_lp = 32;
+  localparam stack_size_lp = 24;
   localparam extmem_address_width = 14; 
   //localparam extmem_address_mask = 16'b0011_1111_1111_1111;
 
@@ -87,6 +87,9 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   localparam oc_drop = 8'b0111_0000;
   localparam ms_drop = full_opcode_mask;
+
+  localparam oc_mul = 8'b1111_0000;
+  localparam ms_mul = full_opcode_mask;
 
   // cpu fsm
   localparam logic[cpu_state_width_lp-1:0] cs_fetch = 0;
@@ -223,6 +226,10 @@ module tt_um_TscherterJunior_stapel_geraet (
           end   
           else if ((ms_nop & oc_nop) == (ms_nop & ui_in)) begin 
             // 
+          end
+          else if ((ms_mul & oc_mul) == (ms_mul & ui_in)) begin 
+            stack_s[stack_pointer_q-1] <= (stack_s[stack_pointer_q-1] * stack_s[stack_pointer_q]);
+            stack_pointer_q <= stack_pointer_q - 1;
           end
           else begin
             //stack_pointer_q <= stack_pointer_q;
