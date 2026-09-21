@@ -205,8 +205,8 @@ module tt_um_TscherterJunior_stapel_geraet (
             stack_pointer_q <= stack_pointer_q - 2;
           end
           else if ((ms_push_from_scratch_1 & oc_push_from_scratch_1) == (ms_push_from_scratch_1 & ui_in)) begin
-            stack_s[stack_pointer_q + 1] = scratch_1_s[15:8];
-            stack_s[stack_pointer_q + 2] = scratch_1_s[7:0];
+            stack_s[stack_pointer_q + 1] <= scratch_1_s[15:8];
+            stack_s[stack_pointer_q + 2] <= scratch_1_s[7:0];
             stack_pointer_q <= stack_pointer_q + 2;
           end           
           else if ((ms_pop_to_scratch_2 & oc_pop_to_scratch_2) == (ms_pop_to_scratch_2 & ui_in)) begin
@@ -214,8 +214,8 @@ module tt_um_TscherterJunior_stapel_geraet (
             stack_pointer_q <= stack_pointer_q - 2;
           end
           else if ((ms_push_from_scratch_2 & oc_push_from_scratch_2) == (ms_push_from_scratch_2 & ui_in)) begin
-            stack_s[stack_pointer_q + 1] = scratch_2_s[15:8];
-            stack_s[stack_pointer_q + 2] = scratch_2_s[7:0];
+            stack_s[stack_pointer_q + 1] <= scratch_2_s[15:8];
+            stack_s[stack_pointer_q + 2] <= scratch_2_s[7:0];
             stack_pointer_q <= stack_pointer_q + 2;
           end            
           else if ((ms_drop & oc_drop) == (ms_drop & ui_in)) begin
