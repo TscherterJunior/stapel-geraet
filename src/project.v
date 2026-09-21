@@ -109,8 +109,8 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam oc_shift_right = 8'b1010_1000;
   localparam ms_shift_right = full_opcode_mask;
 
-  localparam oc_push_instp = 8'b0110_1000;
-  localparam ms_push_instp = full_opcode_mask;
+  //localparam oc_push_instp = 8'b0110_1000;
+  //localparam ms_push_instp = full_opcode_mask;
 
   // cpu fsm
   localparam logic[cpu_state_width_lp-1:0] cs_fetch = 0;
@@ -287,11 +287,11 @@ module tt_um_TscherterJunior_stapel_geraet (
                 stack_s[stack_pointer_q - 1] >> stack_s[stack_pointer_q];
             stack_pointer_q <= stack_pointer_q - 1;
           end
-          else if ((ms_push_instp & oc_push_instp) == (ms_push_instp & ui_in)) begin
-            stack_s[stack_pointer_q + 1] <= instruction_pointer_q[15:8];
-            stack_s[stack_pointer_q + 2] <= instruction_pointer_q[7:0];
-            stack_pointer_q <= stack_pointer_q + 2;
-          end
+          // else if ((ms_push_instp & oc_push_instp) == (ms_push_instp & ui_in)) begin
+          //   stack_s[stack_pointer_q + 1] <= instruction_pointer_q[15:8];
+          //   stack_s[stack_pointer_q + 2] <= instruction_pointer_q[7:0];
+          //   stack_pointer_q <= stack_pointer_q + 2;
+          // end
           else begin
             //stack_pointer_q <= stack_pointer_q;
           end
