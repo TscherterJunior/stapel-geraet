@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2026 Your Name
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -34,7 +34,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign uio_out = fused_output_w[7:0];
 
 
-  localparam stack_size_lp = 24;
+  localparam stack_size_lp = 16;
   localparam extmem_address_width = 14; 
   //localparam extmem_address_mask = 16'b0011_1111_1111_1111;
 
@@ -127,6 +127,12 @@ module tt_um_TscherterJunior_stapel_geraet (
   // scratch 1
   reg [15:0] scratch_1_s;
   reg [15:0] scratch_2_s;
+
+  wire [15:0] multiplication_result_w;
+
+  assign multiplication_result_w =
+      {8'b0, stack_s[stack_pointer_q - 1]} *
+      {8'b0, stack_s[stack_pointer_q]};
 
 
   // CPU FSM
@@ -228,8 +234,8 @@ module tt_um_TscherterJunior_stapel_geraet (
             // 
           end
           else if ((ms_mul & oc_mul) == (ms_mul & ui_in)) begin 
-            stack_s[stack_pointer_q-1] <= (stack_s[stack_pointer_q-1] * stack_s[stack_pointer_q]);
-            stack_pointer_q <= stack_pointer_q - 1;
+          stack_s[stack_pointer_q - 1] <= multiplication_result_w[15:8];
+          stack_s[stack_pointer_q]     <= multiplication_result_w[7:0];
           end
           else begin
             //stack_pointer_q <= stack_pointer_q;
