@@ -88,8 +88,8 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam oc_drop = 8'b0111_0000;
   localparam ms_drop = full_opcode_mask;
 
-  localparam oc_mul = 8'b1111_0000;
-  localparam ms_mul = full_opcode_mask;
+  // localparam oc_mul = 8'b1111_0000;
+  // localparam ms_mul = full_opcode_mask;
 
   localparam oc_and = 8'b0000_1000;
   localparam ms_and = full_opcode_mask;
@@ -254,10 +254,10 @@ module tt_um_TscherterJunior_stapel_geraet (
           else if ((ms_nop & oc_nop) == (ms_nop & ui_in)) begin 
             // 
           end
-          else if ((ms_mul & oc_mul) == (ms_mul & ui_in)) begin 
-          stack_s[stack_pointer_q - 1] <= multiplication_result_w[15:8];
-          stack_s[stack_pointer_q]     <= multiplication_result_w[7:0];
-          end
+          // else if ((ms_mul & oc_mul) == (ms_mul & ui_in)) begin 
+          // stack_s[stack_pointer_q - 1] <= multiplication_result_w[15:8];
+          // stack_s[stack_pointer_q]     <= multiplication_result_w[7:0];
+          // end
           else if ((ms_and & oc_and) == (ms_and & ui_in)) begin
             stack_s[stack_pointer_q - 1] <=
                 stack_s[stack_pointer_q - 1] & stack_s[stack_pointer_q];
@@ -304,7 +304,7 @@ module tt_um_TscherterJunior_stapel_geraet (
           stack_pointer_q <= stack_pointer_q - 2;
         end
         cs_store_data : begin 
-          stack_pointer_q <= stack_pointer_q - 1;
+          stack_pointer_q <= stack_pointer_q + 1;
         end
         cs_load_imd : begin 
           stack_s[stack_pointer_q + 1] <= ui_in;
