@@ -61,6 +61,11 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam oc_nop = 8'b1010_0000;
   localparam ms_nop = full_opcode_mask;
 
+  localparam oc_push_imd = 8'b0110_0000;
+  localparam ms_push_imd = full_opcode_mask;
+
+  localparam oc_jmp_nz = 8'b1110_0000;
+  localparam ms_jmp_nz = full_opcode_mask;
 
 
   // cpu fsm
@@ -71,7 +76,9 @@ module tt_um_TscherterJunior_stapel_geraet (
   localparam logic[cpu_state_width_lp-1:0] cs_store_adrr = 2;
   localparam logic[cpu_state_width_lp-1:0] cs_store_data = 3;
 
-  localparam cpu_fsm_state_count_lp = 4;
+  localparam logic[cpu_state_width_lp-1:0] cs_load_imd = 4;
+
+  localparam cpu_fsm_state_count_lp = 5;
   localparam cpu_state_width_lp = $clog2(cpu_fsm_state_count_lp);
 
 
@@ -105,6 +112,9 @@ module tt_um_TscherterJunior_stapel_geraet (
         else if ((ms_store_ext & oc_store_ext) == (ms_store_ext & ui_in)) begin 
           fsm_state_d = cs_store_adrr;
         end
+        else if ((ms_push_imd & oc_push_imd) == (ms_push_imd & ui_in)) begin 
+          fsm_state_d = cs_load_imd;
+        end
         else begin 
           fsm_state_d = fsm_state_q;
         end
@@ -116,6 +126,9 @@ module tt_um_TscherterJunior_stapel_geraet (
         fsm_state_d = cs_store_data;
       end
       cs_store_data: begin 
+        fsm_state_d = cs_fetch;
+      end
+      cs_load_imd: begin 
         fsm_state_d = cs_fetch;
       end
       default: fsm_state_d = fsm_state_q;
@@ -151,6 +164,9 @@ module tt_um_TscherterJunior_stapel_geraet (
           else if ((ms_add & oc_add) == (ms_add & ui_in)) begin
             stack_s[stack_pointer_q-1] <= stack_s[stack_pointer_q-1] + stack_s[stack_pointer_q];
             stack_pointer_q <= stack_pointer_q - 1;
+          end 
+          else if ((ms_jmp_nz & oc_jmp_nz) == (ms_jmp_nz & ui_in)) begin 
+            stack_pointer_q <= stack_pointer_q - 2;
           end
           else begin
             //stack_pointer_q <= stack_pointer_q;
@@ -166,6 +182,10 @@ module tt_um_TscherterJunior_stapel_geraet (
         cs_store_data : begin 
           stack_pointer_q <= stack_pointer_q - 1;
         end
+        cs_load_imd : begin 
+          stack_s[stack_pointer_q + 1] <= ui_in;
+          stack_pointer_q <= stack_pointer_q + 1;
+        end
         default : begin
           stack_pointer_q <= stack_pointer_q;
         end
@@ -177,11 +197,21 @@ module tt_um_TscherterJunior_stapel_geraet (
   always @(*) begin
     case (fsm_state_q) 
       cs_fetch : begin 
-        instruction_pointer_d = instruction_pointer_q + 1;
+        if ((ms_jmp_nz & oc_jmp_nz) == (ms_jmp_nz & ui_in)) begin 
+          if (&stack_s[stack_pointer_q - 2]) begin 
+            instruction_pointer_d = {stack_s[stack_pointer_q -1],stack_s[stack_pointer_q]};
+          end
+          else begin 
+            instruction_pointer_d = instruction_pointer_q + 1;
+          end
+        end
+        else begin 
+          instruction_pointer_d = instruction_pointer_q + 1;
+        end
       end
-    default : begin
-      instruction_pointer_d = instruction_pointer_q;
-    end
+      default : begin
+        instruction_pointer_d = instruction_pointer_q;
+      end
     endcase
   end
 
@@ -221,7 +251,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   assign data_output_w = {8'b0, stack_s[stack_pointer_q]};
 
   assign fused_output_w = 
-  (fsm_state_q == cs_load_adrr || fsm_state_q == cs_store_adrr || fsm_state_q == cs_fetch) ? 
+  (fsm_state_q == cs_load_adrr || fsm_state_q == cs_store_adrr || fsm_state_q == cs_fetch || fsm_state_q == cs_load_imd) ? 
   {write_enable_w,error_w,address_output_w} : data_output_w;
 
 endmodule
