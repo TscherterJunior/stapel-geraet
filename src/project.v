@@ -25,7 +25,7 @@ module tt_um_TscherterJunior_stapel_geraet (
   wire _unused = &{ena, clk, rst_n, 1'b0};
   */
 
-  wire _unused = &{ ena,uio_in};
+  wire _unused = &{ ena,uio_in, stack_address[15:14]};
 
   assign uio_oe = 8'b1111_1111; // all output
   
@@ -112,10 +112,10 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   localparam stack_address_width_lp = $clog2(stack_size_lp);
   reg [stack_address_width_lp-1:0] stack_pointer_q;
-  reg [stack_address_width_lp-1:0] stack_pointer_d;
+  // reg [stack_address_width_lp-1:0] stack_pointer_d;
   localparam logic[stack_address_width_lp-1:0] stack_pointer_r_lp = '0;
 
-  reg [7:0] stack_ccell_new_val_w;
+  //reg [7:0] stack_ccell_new_val_w;
 
   // Instruction Pointer
   reg [15:0] instruction_pointer_q;
@@ -221,6 +221,9 @@ module tt_um_TscherterJunior_stapel_geraet (
           else if ((ms_drop & oc_drop) == (ms_drop & ui_in)) begin
             stack_pointer_q <= stack_pointer_q - 1;
           end   
+          else if ((ms_nop & oc_nop) == (ms_nop & ui_in)) begin 
+            // 
+          end
           else begin
             //stack_pointer_q <= stack_pointer_q;
           end
