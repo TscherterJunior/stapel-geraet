@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 Your Name
+ * Copyright (c) 2026 Nicolas Tscherter
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -90,6 +90,27 @@ module tt_um_TscherterJunior_stapel_geraet (
 
   localparam oc_mul = 8'b1111_0000;
   localparam ms_mul = full_opcode_mask;
+
+  localparam oc_and = 8'b0000_1000;
+  localparam ms_and = full_opcode_mask;
+
+  localparam oc_or = 8'b1000_1000;
+  localparam ms_or = full_opcode_mask;
+
+  localparam oc_xor = 8'b0100_1000;
+  localparam ms_xor = full_opcode_mask;
+
+  localparam oc_not = 8'b1100_1000;
+  localparam ms_not = full_opcode_mask;
+
+  localparam oc_shift_left = 8'b0010_1000;
+  localparam ms_shift_left = full_opcode_mask;
+
+  localparam oc_shift_right = 8'b1010_1000;
+  localparam ms_shift_right = full_opcode_mask;
+
+  localparam oc_push_instp = 8'b0110_1000;
+  localparam ms_push_instp = full_opcode_mask;
 
   // cpu fsm
   localparam logic[cpu_state_width_lp-1:0] cs_fetch = 0;
@@ -237,6 +258,40 @@ module tt_um_TscherterJunior_stapel_geraet (
           stack_s[stack_pointer_q - 1] <= multiplication_result_w[15:8];
           stack_s[stack_pointer_q]     <= multiplication_result_w[7:0];
           end
+          else if ((ms_and & oc_and) == (ms_and & ui_in)) begin
+            stack_s[stack_pointer_q - 1] <=
+                stack_s[stack_pointer_q - 1] & stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else if ((ms_or & oc_or) == (ms_or & ui_in)) begin
+            stack_s[stack_pointer_q - 1] <=
+                stack_s[stack_pointer_q - 1] | stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else if ((ms_xor & oc_xor) == (ms_xor & ui_in)) begin
+            stack_s[stack_pointer_q - 1] <=
+                stack_s[stack_pointer_q - 1] ^ stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else if ((ms_not & oc_not) == (ms_not & ui_in)) begin
+            stack_s[stack_pointer_q] <=
+                ~stack_s[stack_pointer_q];
+          end
+          else if ((ms_shift_left & oc_shift_left) == (ms_shift_left & ui_in)) begin
+            stack_s[stack_pointer_q - 1] <=
+                stack_s[stack_pointer_q - 1] << stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else if ((ms_shift_right & oc_shift_right) == (ms_shift_right & ui_in)) begin
+            stack_s[stack_pointer_q - 1] <=
+                stack_s[stack_pointer_q - 1] >> stack_s[stack_pointer_q];
+            stack_pointer_q <= stack_pointer_q - 1;
+          end
+          else if ((ms_push_instp & oc_push_instp) == (ms_push_instp & ui_in)) begin
+            stack_s[stack_pointer_q + 1] <= instruction_pointer_q[15:8];
+            stack_s[stack_pointer_q + 2] <= instruction_pointer_q[7:0];
+            stack_pointer_q <= stack_pointer_q + 2;
+          end
           else begin
             //stack_pointer_q <= stack_pointer_q;
           end
@@ -267,7 +322,7 @@ module tt_um_TscherterJunior_stapel_geraet (
     case (fsm_state_q) 
       cs_fetch : begin 
         if ((ms_jmp_nz & oc_jmp_nz) == (ms_jmp_nz & ui_in)) begin 
-          if (&stack_s[stack_pointer_q - 2]) begin 
+          if (stack_s[stack_pointer_q - 2] != 0) begin 
             instruction_pointer_d = {stack_s[stack_pointer_q -1],stack_s[stack_pointer_q]};
           end
           else begin 
